@@ -1,0 +1,409 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@300;400&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:           #f7f6f3;
+  --surface:      #ffffff;
+  --border:       #e8e5de;
+  --border-soft:  #f0ede6;
+  --text-primary: #1a1916;
+  --text-muted:   #9b9890;
+  --text-faint:   #c5c2ba;
+  --accent:       #2d5be3;
+  --accent-dim:   #eef1fc;
+  --user-bg:      #1a1916;
+  --user-text:    #f7f6f3;
+  --bot-bg:       #ffffff;
+  --bot-border:   #e8e5de;
+  --danger:       #e74c4c;
+  --danger-dark:  #c0392b;
+  --radius-sm:    6px;
+  --radius-md:    12px;
+  --radius-lg:    20px;
+  --radius-pill:  999px;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.06);
+  --shadow-md:    0 4px 16px rgba(0,0,0,.08);
+  --font:         'DM Sans', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+  --transition:   160ms cubic-bezier(.4,0,.2,1);
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 720px;
+  height: calc(100vh - 48px);
+  max-height: 860px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+
+header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+header::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  flex-shrink: 0;
+}
+
+header h2 {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+/* ── Chat Window ─────────────────────────────────────────────── */
+
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-behavior: smooth;
+}
+
+.chat-window::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-window::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-window::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-pill);
+}
+
+/* ── Messages ────────────────────────────────────────────────── */
+
+.message {
+  max-width: 75%;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.925rem;
+  line-height: 1.65;
+  word-break: break-word;
+  animation: fadeUp 200ms ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+  align-self: flex-end;
+  background: var(--user-bg);
+  color: var(--user-text);
+  border-bottom-right-radius: var(--radius-sm);
+  font-weight: 400;
+}
+
+.message.bot {
+  align-self: flex-start;
+  background: var(--bot-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--bot-border);
+  border-bottom-left-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.message.system {
+  align-self: center;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  font-style: normal;
+  letter-spacing: 0.02em;
+  padding: 4px 0;
+  max-width: 100%;
+}
+
+/* ── Attachment Preview ──────────────────────────────────────── */
+
+#attachment-preview {
+  display: none;
+  padding: 8px 20px;
+  background: var(--accent-dim);
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.8rem;
+  color: var(--accent);
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+#attachment-preview button {
+  background: none !important;
+  border: none !important;
+  cursor: pointer;
+  color: var(--text-muted) !important;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 !important;
+  margin: 0 !important;
+  transition: color var(--transition);
+  border-radius: 0 !important;
+}
+
+#attachment-preview button:hover {
+  color: var(--danger) !important;
+}
+
+/* ── Input Area ──────────────────────────────────────────────── */
+
+.input-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+#user-input {
+  flex: 1;
+  padding: 10px 16px;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  caret-color: var(--accent);
+}
+
+#user-input::placeholder {
+  color: var(--text-faint);
+}
+
+#user-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+#user-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+
+button {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background var(--transition), opacity var(--transition), transform var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#send-btn {
+  padding: 10px 20px;
+  background: var(--accent);
+  color: #fff;
+}
+
+#send-btn:hover:not(:disabled) {
+  background: #1e4bd6;
+}
+
+#stop-btn {
+  display: none;
+  padding: 10px 16px;
+  background: var(--danger) !important;
+  color: #fff !important;
+  margin-left: 0 !important;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+#stop-btn:hover:not(:disabled) {
+  background: var(--danger-dark) !important;
+}
+
+#resetBtn {
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  margin-left: 0 !important;
+}
+
+#resetBtn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+/* ── File Upload Form ────────────────────────────────────────── */
+
+.input-area form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── File Input ──────────────────────────────────────────────── */
+
+.input-area form input[type="file"] {
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 9px 14px 9px 10px;
+  cursor: pointer;
+  width: 200px;
+  display: block;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.input-area form input[type="file"]:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.input-area form input[type="file"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.input-area form input[type="file"]::file-selector-button,
+.input-area form input[type="file"]::-webkit-file-upload-button {
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid #c8d4f8;
+  border-radius: 999px;
+  padding: 4px 12px;
+  margin-right: 10px;
+  cursor: pointer;
+  transition: background 160ms, color 160ms;
+}
+
+.input-area form input[type="file"]::file-selector-button:hover,
+.input-area form input[type="file"]::-webkit-file-upload-button:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.input-area form input[type="submit"] {
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.input-area form input[type="submit"]:hover {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+
+@media (max-width: 540px) {
+  body {
+    padding: 0;
+    align-items: stretch;
+  }
+  .chat-container {
+    max-width: 100%;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+  }
+  .message {
+    max-width: 88%;
+  }
+  .input-area {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  #user-input {
+    min-width: 0;
+  }
+}

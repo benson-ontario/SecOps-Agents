@@ -1,0 +1,32 @@
+openapi: 3.0.0
+info:
+  title: Azure Disable User
+  version: 1.0.0
+  description: APIs for disabling Azure users.
+paths:
+  /disable_user:
+    post:
+      summary: Disable Azure user.
+      description: Disables user in Azure.
+      operationId: disableUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                account_name:
+                  type: string
+                  description: Account name to be disabled.
+              required:
+                - account_name
+      responses:
+        "200":
+          description: Account disabled successfully.
+          content:
+            application/json:
+              schema:
+                type: string
+        "400":
+          description: Bad request. One or more required fields are missing or invalid

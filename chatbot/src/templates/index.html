@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        #stop-btn {
+            display: none;
+            background-color: #e74c4c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        #stop-btn:hover { background-color: #c0392b; }
+        #reset-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        #reset-btn:hover { background-color: #495057; }
+        .message.system {
+            font-size: 0.82em;
+            color: #888;
+            font-style: italic;
+            padding: 4px 10px;
+            align-self: center;
+        }
+        
+        #attachment-preview {
+            display: none;
+            padding: 6px 12px;
+            background: #f0f4ff;
+            border-top: 1px solid #dde;
+            font-size: 0.85em;
+            color: #444;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <header>
+            <h2>AI Assistant</h2>
+        </header>
+        
+        <div id="chat-window" class="chat-window">
+            </div>
+
+        <div id="attachment-preview" style="display:none; padding:6px 12px; background:#f0f4ff; border-top:1px solid #dde; font-size:0.85em; color:#444; align-items:center; gap:8px;">
+            <span> <span id="attachment-name"></span></span>
+            <button onclick="clearAttachment()" style="background:none;border:none;cursor:pointer;color:#e74c4c;font-size:1em;">✕</button>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
+            <button id="resetBtn" onclick="resetSession()">Reset Session</button>
+            <button id="send-btn">Send</button>
+            <button id="stop-btn">&#9632; Stop</button>
+            <form method='POST' enctype='multipart/form-data'>
+               {{form.hidden_tag()}}
+               {{form.file()}}
+               {{form.submit() }}
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const stopBtn = document.getElementById('stop-btn');
+<!--        const resetSessionBtn = document.getElementById('reset-session-btn);     -->
+        let abortController = null;
+
+        function setGenerating(isGenerating) {
+            sendBtn.disabled = isGenerating;
+            userInput.disabled = isGenerating;
+            stopBtn.style.display = isGenerating ? 'inline-block' : 'none';
+        }
+        
+        stopBtn.addEventListener('click', () => {
+            if (abortController) abortController.abort();
+        })
+
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            appendMessage('user', message);
+            userInput.value = '';
+            setGenerating(true);
+            const botDiv = document.createElement('div');
+            botDiv.classList.add('message', 'bot');
+            chatWindow.appendChild(botDiv);
+            
+            abortController = new AbortController();
+            
+            try {
+                const response = await fetch('/get_response', {
+                    signal: abortController.signal,
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+              
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+                    const lines = decoder.decode(value).split('\n');
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const payload = line.slice(6);
+                        if (payload == '[DONE]') break;
+                     
+                        const {content} = JSON.parse(payload);
+                        botDiv.innerText += content;
+                        chatWindow.scrollTop = chatWindow.scrollHeight;
+                    }
+                }
+            } catch (err) {
+                  if (err.name === 'AbortError') {
+                      const stopIndicator = document.createElement('span');
+                      stopIndicator.style.cssText = 'color:#999;font-size:.8em;margin-left:6px;';
+                      stopIndicator.innerText = '[stopped]';
+                      botDiv.appendChild(stopIndicator);
+                  } else {
+                      botDiv.innerText += '\n[Error: could not get a response]';
+                      console.error(err)
+                  }
+            } finally {
+                  abortController = null;
+                  setGenerating(false);       
+              }
+          }
+                
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender);
+            msgDiv.innerText = text;
+            chatWindow.appendChild(msgDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function appendSystemMessage(text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', 'system');
+            msgDiv.innerText = text;
+            chatWindow.appendChild(msgDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+      
+        const fileField = document.querySelector('input[type="file"]');
+        const attachmentPreview = document.getElementById('attachment-preview');
+        const attachmentName = document.getElementById('attachment-name');
+
+        if (fileField) {
+            fileField.addEventListener('change', () => {
+                const file = fileField.files[0];
+                if (!file) { attachmentPreview.style.display = 'none'; return; }
+                attachmentName.textContent = file.name;
+                attachmentPreview.style.display = 'flex';
+            });
+        }    
+        function clearAttachment() {
+            fileField.value = '';
+            attachmentPreview.style.display = 'none';
+            attachmentName.textContent = '';
+        }
+        async function resetSession() {
+        const btn = document.getElementById('resetBtn');
+        btn.disabled = true;
+        btn.textContent = 'Resetting...';
+
+        try {
+            const res = await fetch('/reset', { method: 'POST' });
+            const data = await res.json();
+
+           if (data.status === 'reset') {
+               btn.textContent = 'Reset!';
+               setTimeout(() => window.location.reload(), 800);
+           }
+        } catch (err) {
+            btn.textContent = 'Error';
+            console.error(err);
+        } finally {
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = 'Reset Session';
+            }, 2000);
+    }
+  }
+    </script>
+</body>
+</html>

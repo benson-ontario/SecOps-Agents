@@ -1,0 +1,62 @@
+openapi: 3.0.0
+info:
+  title: Azure Investigation
+  version: 1.0.0
+  description: APIs for investigating Azure services, including querying logs,
+    user activity, and profiles.
+paths:
+  /monitor:
+    post:
+      summary: Execute KQL queries in Azure
+      description: Run KQL queries against an Azure Log Analytics workspace for logs
+        investigation and analysis
+      operationId: executeKQLQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                queries:
+                  type: array
+                  description: Contains selected Queries IDs.
+                  items:
+                    type: string
+                substitutions:
+                  type: object
+                  description: A dictionary of entity substitutions for Queries. Each key must be the entity. Each value must be an actual entity from the incident.
+                  additionalProperties:
+                    type: string
+                    description: A single entity for substitution in the query.
+              required:
+                - queries
+                - substitutions
+      responses:
+        "200":
+          description: Query executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    description: Array of results, one per executed query. Each entry contains the
+                      query, the inferred table name, and the logs returned.
+                    items:
+                      type: object
+                      properties:
+                        query:
+                          type: string
+                          description: The executed KQL query.
+                        table:
+                          type: string
+                          description: Table name against which query was executed.
+                        logs:
+                          type: array
+                          description: Logs returned by the query.
+                          items:
+                            type: object
+        "400":
+          description: Bad request. One or more required fields are missing or invalid
