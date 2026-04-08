@@ -1,3 +1,4 @@
+"""Returns query description packs based on entity type. Belongs to getQuery action group."""
 import os
 import logging
 from typing import Dict, Any

@@ -1,16 +1,10 @@
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 from pydantic import BaseModel
 import json, logging
 from typing import Any, Dict
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from pydantic import BaseModel
-import json, logging
 import uvicorn
 
 logger = logging.getLogger(__name__)

@@ -1,8 +1,9 @@
+"""Function invokes Bedrock Investigation agent when incident comes and returned
+generated report back to the Azure via API Gateway (optionally, via Lambda function url)
+"""
 import json
 import os
-import requests
 import uuid
-import datetime
 import boto3
 
 BEDROCK_AGENT_ID = os.environ['BEDROCK_AGENT_ID']

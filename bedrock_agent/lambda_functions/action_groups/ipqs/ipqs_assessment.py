@@ -1,4 +1,4 @@
-
+"""Accesses IPQS API to retrieve IP address reputation assessment. Belong to IPQS action group."""
 import os
 import json
 import requests

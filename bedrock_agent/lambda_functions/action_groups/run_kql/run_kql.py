@@ -1,4 +1,6 @@
-"""MCP client"""
+"""fetches selected queries from s3 bucket and executes them.
+Acts as client for azure mcp server (on EC2 Eliz_ubuntu) and belongs to the executeQueries action group.
+"""
 import logging
 from http import HTTPStatus
 import asyncio, aiohttp
