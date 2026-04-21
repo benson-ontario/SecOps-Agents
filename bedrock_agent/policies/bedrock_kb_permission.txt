@@ -1,0 +1,11 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AmazonBedrockAgentRetrieveKnowledgeBasePolicyProd",
+            "Effect": "Allow",
+            "Action": ["bedrock:Retrieve" ],
+            "Resource": ["arn:aws:bedrock:us-east-1:*:knowledge-base/*"]
+        }
+    ]
+}
