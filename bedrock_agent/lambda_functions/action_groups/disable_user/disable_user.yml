@@ -1,32 +1,133 @@
 openapi: 3.0.0
 info:
-  title: Azure Disable User
-  version: 1.0.0
-  description: APIs for disabling Azure users.
+  title: Confidence Score API
+  version: 2.0.0
 paths:
-  /disable_user:
+  /calculate_confidence_score:
     post:
-      summary: Disable Azure user.
-      description: Disables user in Azure.
-      operationId: disableUser
+      operationId: calculate_confidence_score
+      description: >
+        Calculate a structured confidence score (1–10) for the investigation,
+        and determine whether the account should be blocked.
+        Call this ONCE at the end of all investigation passes, before generating
+        the final report. Pass account name, severity, log gap status, and your
+        block recommendation so the decision threshold is calibrated correctly.
+      summary: Calculate a confidence score and block decision.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              properties:
-                account_name:
-                  type: string
-                  description: Account name to be disabled.
               required:
-                - account_name
+                - kql_results
+                - hypotheses
+                - ipqs
+                - account
+                - log_gap_detected
+                - incident_severity
+                - agent_recommends_block
+              properties:
+                kql_results:
+                  type: string
+                  description: >
+                    JSON array string of KQL query outcomes.
+                    Each item: {"query_id": string, "row_count": integer, "matched_hypothesis": boolean}.
+                    Example: '[{"query_id":"FAILED_LOGIN","row_count":5,"matched_hypothesis":true}]'
+                ipqs:
+                  type: string
+                  description: >
+                    JSON object string from IPQS tool:
+                    {"fraud_score": 0-100, "proxy": bool, "tor": bool, "vpn": bool}.
+                    Pass "null" if no IP was investigated or IPQS was not called.
+                    Do NOT pass plain text like "Not completed" — only valid JSON or "null".
+                hypotheses:
+                  type: string
+                  description: >
+                    Valid JSON string: {"total": <integer>, "supported": <integer>}.
+                    Example: '{"total": 3, "supported": 2}'
+                account:
+                  type: string
+                  description: >
+                    The UPN or display name of the account under investigation.
+                    Used to detect privileged accounts (sync, admin, svc, etc.)
+                    and apply blast radius scoring.
+                    Example: "sync_it1000_4bd5dba13729@labcyberschool.onmicrosoft.com"
+                log_gap_detected:
+                  type: string
+                  enum: ["true", "false"]
+                  description: >
+                    Set to "true" if multiple high-priority KQL queries returned
+                    zero results due to suspected SIEM ingestion gaps or log
+                    retention limits — not because the activity did not occur.
+                    This prevents known telemetry blind spots from unfairly
+                    suppressing the KQL evidence score.
+                incident_severity:
+                  type: string
+                  enum: ["critical", "high", "medium", "low", "info"]
+                  description: >
+                    Your assessed severity of the incident based on the full
+                    investigation. Used to calibrate the block decision threshold —
+                    does NOT directly inflate the confidence score.
+                    Use "critical" or "high" for confirmed privileged account
+                    compromise, active exfiltration, or lateral movement.
+                agent_recommends_block:
+                  type: string
+                  enum: ["true", "false"]
+                  description: >
+                    Set to "true" if, based on your full investigation, you
+                    recommend blocking this account. Combined with incident_severity,
+                    this lowers the confidence score threshold required to trigger
+                    an auto-block — it does NOT modify the score itself.
+                    Only set to "true" when evidence strongly supports malicious
+                    activity (e.g. confirmed brute force, TOR origin, exfiltration).
       responses:
         "200":
-          description: Account disabled successfully.
+          description: Confidence score with breakdown and block decision
           content:
             application/json:
               schema:
-                type: string
+                type: object
+                properties:
+                  confidence_score:
+                    type: number
+                    description: Final score from 1.0 to 10.0
+                  breakdown:
+                    type: object
+                    description: Per-component score details
+                  raw_score:
+                    type: number
+                    description: Unclipped sum before min/max clamping
+                  should_block:
+                    type: boolean
+                    description: >
+                      Whether the account should be blocked based on confidence
+                      score, severity, and agent recommendation combined.
+                  block_threshold:
+                    type: number
+                    description: >
+                      The minimum confidence score required to trigger a block
+                      given the severity and agent recommendation inputs.
+                  block_reason:
+                    type: string
+                    description: >
+                      Human-readable explanation of why the block decision
+                      was or was not triggered.
         "400":
-          description: Bad request. One or more required fields are missing or invalid
+          description: Bad input — malformed JSON or missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
