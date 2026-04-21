@@ -1,0 +1,161 @@
+{
+    "Queries": [
+      {
+        "QueryID": "IP_ACTIVITY_SUMMARY",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nSigninLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| summarize TotalAttempts = count(), UniqueUsers = dcount(UserPrincipalName), FailedAttempts = countif(ResultType != 0), SuccessfulAttempts = countif(ResultType == 0), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated)"
+      },
+      {
+        "QueryID": "MULTI_USER_SPRAY_CHECK",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nSigninLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| summarize UniqueUsers = dcount(UserPrincipalName), Failures = countif(ResultType != 0), Users = make_set(UserPrincipalName, 50)\n| where UniqueUsers > 5"
+      },
+      {
+        "QueryID": "FAILURE_TO_SUCCESS_PATTERN",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}'; let startTime = ago(3d);\nSigninLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| summarize Failures = countif(ResultType != 0), Successes = countif(ResultType == 0)\n| where Failures > 10 and Successes > 0"
+      },
+      {
+        "QueryID": "GEO_DIVERSITY_CHECK",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nSigninLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| extend Country = tostring(LocationDetails.countryOrRegion)\n| summarize Countries = make_set(Country), CountryCount = dcount(Country)"
+      },
+      {
+        "QueryID": "NONINTERACTIVE_TOKEN_ACTIVITY",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nAADNonInteractiveUserSignInLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| summarize TokenSignins = count(), Users = make_set(UserPrincipalName)"
+      },
+      {
+        "QueryID": "SERVICE_PRINCIPAL_ACTIVITY",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nAADServicePrincipalSignInLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| summarize ServicePrincipals = make_set(ServicePrincipalName), Resources = make_set(ResourceDisplayName), Attempts = count()"
+      },
+      {
+        "QueryID": "MANAGED_IDENTITY_ACTIVITY",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nAADManagedIdentitySignInLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| summarize Identities = make_set(ServicePrincipalId), Attempts = count()"
+      },
+      {
+        "QueryID": "ADMIN_PORTAL_TARGETING",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nSigninLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| where AppDisplayName in ('Azure Portal','Microsoft Admin Center','Microsoft Azure Management')\n| summarize Attempts = count()"
+      },
+      {
+        "QueryID": "AZURE_CONTROL_PLANE_ACTIVITY",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nAzureActivity\n| where TimeGenerated >= startTime\n| where CallerIpAddress == ip\n| summarize Operations = make_set(OperationNameValue), OperationCount = count()"
+      },
+      {
+        "QueryID": "PRIVILEGE_CHANGE_ACTIVITY",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nAuditLogs\n| where TimeGenerated >= startTime\n| where InitiatedBy.ipAddress == ip\n| summarize Operations = make_set(OperationName), Count = count()"
+      },
+      {
+        "QueryID": "RISKY_USER_DETECTIONS",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nSigninLogs\n| where IPAddress == ip\n| join kind=inner (AADRiskyUsers) on UserPrincipalName\n| project UserPrincipalName, RiskLevel, RiskState"
+      },
+      {
+        "QueryID": "DEVICE_PATTERN_ANALYSIS",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nSigninLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| extend OS = tostring(DeviceDetail.operatingSystem), Browser = tostring(DeviceDetail.browser)\n| summarize OSSet = make_set(OS), BrowserSet = make_set(Browser)"
+      },
+      {
+        "QueryID": "USER_TARGET_TIMELINE",
+        "Subs": "IPAddress",
+        "Query": "let ip = '{IPAddress}';\nlet startTime = ago(7d);\nSigninLogs\n| where TimeGenerated >= startTime\n| where IPAddress == ip\n| project TimeGenerated, UserPrincipalName, AppDisplayName, ResultType, Location = tostring(LocationDetails.countryOrRegion)\n| order by TimeGenerated asc"
+      },
+      {
+        "QueryID": "NEW_DEVICE_DETECTION",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nlet baseline = SigninLogs\n| where UserPrincipalName == userUPN\n| where TimeGenerated between (ago(30d)..ago(2d))\n| extend DeviceId = tostring(DeviceDetail.deviceId)\n| summarize by DeviceId;\nSigninLogs\n| where UserPrincipalName == userUPN\n| where TimeGenerated >= ago(48h)\n| extend DeviceId = tostring(DeviceDetail.deviceId)\n| where DeviceId !in (baseline)\n| project TimeGenerated, DeviceId, IPAddress, LocationDetails, AppDisplayName"
+      },
+      {
+        "QueryID": "FAILED_LOGIN_PATTERN",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| where ResultType != 0\n| summarize FailedAttempts=count(), DistinctIPs=dcount(IPAddress), FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated)\n| extend PossiblePasswordSpray = DistinctIPs > 5"
+      },
+      {
+        "QueryID": "MFA_ACTIVITY_CHECK",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| summarize\n    MFAEvents=countif(AuthenticationMethodsUsed has 'mfa'),\n    NonMFAEvents=countif(AuthenticationMethodsUsed !has 'mfa')"
+      },
+      {
+        "QueryID": "TOKEN_REUSE_CHECK",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| where IncomingTokenType == 'primaryRefreshToken'\n| summarize TokenUse=count(), DistinctIPs=dcount(IPAddress), DistinctDevices=dcount(tostring(DeviceDetail.deviceId))"
+      },
+      {
+        "QueryID": "CROSS_TENANT_SIGNINS",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| where CrossTenantAccessType != 'none'\n| project TimeGenerated, CrossTenantAccessType, ResourceTenantId, IPAddress"
+      },
+      {
+        "QueryID": "NONINTERACTIVE_TOKEN_USAGE",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nAADNonInteractiveUserSignInLogs\n| where UserPrincipalName == userUPN\n| summarize Count=count(), DistinctApps=dcount(AppDisplayName), DistinctIPs=dcount(IPAddress)"
+      },
+      {
+        "QueryID": "RISKY_USER_STATUS",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nAADRiskyUsers\n| where UserPrincipalName == userUPN\n| project TimeGenerated, RiskLevel, RiskState, RiskDetail"
+      },
+      {
+        "QueryID": "ADMIN_PORTAL_ACCESS",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| where AppDisplayName in ('Azure Portal','Microsoft Admin Center','Microsoft Azure Management')\n| project TimeGenerated, AppDisplayName, IPAddress, LocationDetails"
+      },
+      {
+        "QueryID": "PRIVILEGE_CHANGES",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nAuditLogs\n| where TargetResources has userUPN\n| where OperationName contains 'Add' or OperationName contains 'role'\n| project TimeGenerated, OperationName, InitiatedBy, TargetResources"
+      },
+      {
+        "QueryID": "IMPOSSIBLE_TRAVEL",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| extend Country = tostring(LocationDetails.countryOrRegion)\n| project TimeGenerated, Country, IPAddress\n| order by TimeGenerated asc"
+      },
+      {
+        "QueryID": "USER_ACTIVITY_TIMELINE",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| project TimeGenerated, IPAddress, AppDisplayName, ResultType, DeviceDetail\n| order by TimeGenerated asc"
+      },
+      {
+        "QueryID": "TOKEN_REPLAY_DETECTION",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| where isnotempty(UniqueTokenIdentifier)\n| summarize DistinctIPs=dcount(IPAddress), DistinctDevices=dcount(tostring(DeviceDetail.deviceId)), Events=count() by UniqueTokenIdentifier\n| where DistinctIPs > 1 or DistinctDevices > 1\n| project UniqueTokenIdentifier, Events, DistinctIPs, DistinctDevices"
+      },
+      {
+        "QueryID": "CONDITIONAL_ACCESS_BYPASS",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| where ConditionalAccessStatus in ('notApplied','failure')\n| project TimeGenerated, AppDisplayName, IPAddress, ConditionalAccessStatus, LocationDetails"
+      },
+      {
+        "QueryID": "MFA_METHOD_CHANGES",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nAuditLogs\n| where OperationName has 'authentication' or OperationName has 'MFA'\n| where TargetResources has userUPN\n| project TimeGenerated, OperationName, InitiatedBy, TargetResources"
+      },
+      {
+        "QueryID": "SERVICE_PRINCIPAL_CREDENTIAL_CHANGES",
+        "Query": "AuditLogs\n| where OperationName contains 'service principal'\n| where OperationName contains 'credential' or OperationName contains 'secret'\n| project TimeGenerated, OperationName, InitiatedBy, TargetResources"
+      },
+      {
+        "QueryID": "AZURE_CONTROL_PLANE_ACTIVITY",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nAzureActivity\n| where Caller contains userUPN\n| project TimeGenerated, OperationNameValue, ResourceGroup, ResourceProviderValue, CallerIpAddress"
+      },
+      {
+        "QueryID": "RISKY_SIGNINS",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nSigninLogs\n| where UserPrincipalName == userUPN\n| where IsRisky == true or RiskLevelAggregated in (\"high\",\"medium\")\n| project TimeGenerated, RiskLevelAggregated, RiskDetail, IPAddress, AppDisplayName"
+      },
+      {
+        "QueryID": "NONINTERACTIVE_TOKEN_ANOMALY",
+        "Subs": "UserPrincipalName",
+        "Query": "let userUPN = '{UserPrincipalName}';\nAADNonInteractiveUserSignInLogs\n| where UserPrincipalName == userUPN\n| summarize SignInCount=count(), DistinctIPs=dcount(IPAddress), DistinctApps=dcount(AppDisplayName)\n| extend Suspicious = DistinctIPs > 5 or DistinctApps > 10"
+      },
+      {
+        "QueryID": "OAUTH_APP_CONSENT",
+        "Query": "AuditLogs\n| where OperationName contains 'consent'\n| project TimeGenerated, OperationName, InitiatedBy, TargetResources"
+      }
+    ]
+  }
