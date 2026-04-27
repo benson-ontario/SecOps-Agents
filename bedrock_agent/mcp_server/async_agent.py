@@ -81,7 +81,7 @@ async def custom_call_tool(tool_name: str, function_args: Dict[str, Any]):
         # command = [
         #     "az", "ad", "user", "update",
         #     "--id", function_args["account_name"],
-        #     "--account-enabled", "true"
+        #     "--account-enabled", "false"
         # ]
 
         # print(f"Executing: {' '.join(command)}")
