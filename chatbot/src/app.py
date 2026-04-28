@@ -14,6 +14,8 @@ from preprocessing import  retrieve_context, ingest_documents, purge_session
 from utils import is_allowed_file, message_summary
 from ollama_client import ollama_client
 from config import SECRET_KEY
+from system_instructions import SYSTEM_INSTRUCTIONS
+
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -86,7 +88,10 @@ def get_response():
     if context_docs:
         context_text = '\n\n'.join(context_docs)
         print(context_docs)
-        prompt = f'You are helpful assistant. If the context below is relevant to the question, use it to answer. If the context if not relevant or does not contain enough information, answer using ONLY your knowledge. Mention sources and context ONLY if context is relevant to the question.\n\nContext: {context_docs}\n\nQuestion:{user_input}'
+        prompt = SYSTEM_INSTRUCTIONS.format(
+            contex="\n\n".join(context_docs),
+            user_input=user_input
+        )
     else:
         prompt = user_input
 
