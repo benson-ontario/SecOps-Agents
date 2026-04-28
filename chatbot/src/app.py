@@ -89,7 +89,7 @@ def get_response():
         context_text = '\n\n'.join(context_docs)
         print(context_docs)
         prompt = SYSTEM_INSTRUCTIONS.format(
-            contex="\n\n".join(context_docs),
+            context="\n\n".join(context_docs),
             user_input=user_input
         )
     else:
